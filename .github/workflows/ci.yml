@@ -1,0 +1,106 @@
+name: CI — wikiRust
+
+on:
+  push:
+    branches: [main, master, dev, ledger]
+  pull_request:
+    branches: [main, master, dev, ledger]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # ── Build ────────────────────────────────────────────────────────────────────
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo build
+        run: cargo build --workspace --all-features
+
+  # ── Test ─────────────────────────────────────────────────────────────────────
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo test
+        run: cargo test --workspace --all-features
+
+  # ── Clippy (lint) ─────────────────────────────────────────────────────────────
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-features -- -D warnings
+
+  # ── Format ────────────────────────────────────────────────────────────────────
+  fmt:
+    name: fmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: cargo fmt
+        run: cargo fmt --all -- --check
+
+  # ── Enforce roles: PR phải có đúng label dựa vào target branch ───────────────
+  # Chỉ chạy khi có PR event
+  role-check:
+    name: role-check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Kiểm tra target branch hợp lệ
+        env:
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+        run: |
+          echo "PR: ${HEAD} → ${BASE}"
+
+          # Quy tắc flow:
+          # feature/* hoặc fix/* → dev
+          # dev                  → master
+          # master               → main
+          # */audit-*            → ledger
+          case "${BASE}" in
+            dev)
+              if [[ ! "${HEAD}" =~ ^(feature|fix|chore|docs|refactor|test)/.*$ ]] && [[ "${HEAD}" != "hotfix/"* ]]; then
+                echo "::warning::PR vào 'dev' nên từ nhánh feature/*, fix/*, chore/*, docs/*, refactor/*, test/*"
+              fi
+              ;;
+            master)
+              if [[ "${HEAD}" != "dev" ]] && [[ ! "${HEAD}" =~ ^hotfix/.*$ ]]; then
+                echo "::error::PR vào 'master' chỉ được phép từ 'dev' hoặc 'hotfix/*'"
+                exit 1
+              fi
+              ;;
+            main)
+              if [[ "${HEAD}" != "master" ]] && [[ ! "${HEAD}" =~ ^hotfix/.*$ ]]; then
+                echo "::error::PR vào 'main' chỉ được phép từ 'master' hoặc 'hotfix/*'"
+                exit 1
+              fi
+              ;;
+            ledger)
+              if [[ ! "${HEAD}" =~ ^audit/.*$ ]] && [[ ! "${HEAD}" =~ ^compliance/.*$ ]]; then
+                echo "::error::PR vào 'ledger' chỉ được phép từ 'audit/*' hoặc 'compliance/*'"
+                exit 1
+              fi
+              ;;
+          esac
+          echo "✅ Branch flow hợp lệ: ${HEAD} → ${BASE}"

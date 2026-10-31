@@ -1,0 +1,163 @@
+---
+# =============================================================================
+# Ruleset JSON cho GitHub Repository Rules (REST API / UI import)
+# Org: wikialisalabs | Repo: wikiRust
+#
+# Dùng với script setup-branch-rules.sh hoặc import thủ công tại:
+# https://github.com/wikialisalabs/wikiRust/settings/rules/new
+# =============================================================================
+
+rulesets:
+
+  # ── Ruleset 1: main branch (Production) ─────────────────────────────────────
+  - name: "protect-main"
+    target: "branch"
+    enforcement: "active"
+    conditions:
+      ref_name:
+        include: ["refs/heads/main"]
+        exclude: []
+    bypass_actors:
+      # ledger team có thể bypass trong trường hợp khẩn cấp
+      - actor_type: "Team"
+        actor_id: "ledger"          # thay bằng numeric ID sau khi tạo team
+        bypass_mode: "pull_request" # chỉ bypass qua PR, không push thẳng
+      - actor_type: "Team"
+        actor_id: "main"
+        bypass_mode: "always"
+    rules:
+      - type: "deletion"              # không cho xóa nhánh main
+      - type: "non_fast_forward"      # không cho force push
+      - type: "creation"              # không cho tạo lại nếu đã có
+      - type: "required_linear_history"
+      - type: "required_signatures"   # commit phải được ký (GPG/SSH)
+      - type: "pull_request"
+        parameters:
+          required_approving_review_count: 2
+          dismiss_stale_reviews_on_push: true
+          require_code_owner_review: true
+          require_last_push_approval: true
+          required_review_thread_resolution: true
+      - type: "required_status_checks"
+        parameters:
+          strict_required_status_checks_policy: true
+          required_status_checks:
+            - context: "ci / build"
+              integration_id: 0
+            - context: "ci / test"
+              integration_id: 0
+            - context: "ci / clippy"
+              integration_id: 0
+
+  # ── Ruleset 2: master branch (Release Candidates) ────────────────────────────
+  - name: "protect-master"
+    target: "branch"
+    enforcement: "active"
+    conditions:
+      ref_name:
+        include: ["refs/heads/master"]
+        exclude: []
+    bypass_actors:
+      - actor_type: "Team"
+        actor_id: "ledger"
+        bypass_mode: "pull_request"
+      - actor_type: "Team"
+        actor_id: "main"
+        bypass_mode: "always"
+    rules:
+      - type: "deletion"
+      - type: "non_fast_forward"
+      - type: "required_linear_history"
+      - type: "pull_request"
+        parameters:
+          required_approving_review_count: 1
+          dismiss_stale_reviews_on_push: true
+          require_code_owner_review: true
+          require_last_push_approval: false
+          required_review_thread_resolution: true
+      - type: "required_status_checks"
+        parameters:
+          strict_required_status_checks_policy: true
+          required_status_checks:
+            - context: "ci / build"
+              integration_id: 0
+            - context: "ci / test"
+              integration_id: 0
+
+  # ── Ruleset 3: dev branch (Development Integration) ──────────────────────────
+  - name: "protect-dev"
+    target: "branch"
+    enforcement: "active"
+    conditions:
+      ref_name:
+        include: ["refs/heads/dev"]
+        exclude: []
+    bypass_actors:
+      - actor_type: "Team"
+        actor_id: "master"
+        bypass_mode: "pull_request"
+      - actor_type: "Team"
+        actor_id: "ledger"
+        bypass_mode: "pull_request"
+      - actor_type: "Team"
+        actor_id: "main"
+        bypass_mode: "always"
+    rules:
+      - type: "deletion"
+      - type: "non_fast_forward"
+      - type: "pull_request"
+        parameters:
+          required_approving_review_count: 1
+          dismiss_stale_reviews_on_push: false
+          require_code_owner_review: false
+          require_last_push_approval: false
+          required_review_thread_resolution: false
+      - type: "required_status_checks"
+        parameters:
+          strict_required_status_checks_policy: false
+          required_status_checks:
+            - context: "ci / build"
+              integration_id: 0
+
+  # ── Ruleset 4: ledger branch (Audit/Compliance Trail) ─────────────────────────
+  - name: "protect-ledger"
+    target: "branch"
+    enforcement: "active"
+    conditions:
+      ref_name:
+        include: ["refs/heads/ledger"]
+        exclude: []
+    bypass_actors:
+      - actor_type: "Team"
+        actor_id: "main"
+        bypass_mode: "always"
+    rules:
+      - type: "deletion"
+      - type: "non_fast_forward"
+      - type: "creation"
+      - type: "required_linear_history"
+      - type: "required_signatures"
+      - type: "pull_request"
+        parameters:
+          required_approving_review_count: 2
+          dismiss_stale_reviews_on_push: true
+          require_code_owner_review: true
+          require_last_push_approval: true
+          required_review_thread_resolution: true
+
+  # ── Ruleset 5: feature branches (Developer workflow) ─────────────────────────
+  - name: "guide-feature-branches"
+    target: "branch"
+    enforcement: "evaluate"   # chỉ log, không block (để train developers)
+    conditions:
+      ref_name:
+        include:
+          - "refs/heads/feature/**"
+          - "refs/heads/fix/**"
+          - "refs/heads/chore/**"
+          - "refs/heads/docs/**"
+          - "refs/heads/refactor/**"
+          - "refs/heads/test/**"
+        exclude: []
+    rules:
+      - type: "non_fast_forward"  # khuyến khích rebase workflow
