@@ -1,0 +1,41 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "core",
+    "evm",
+    "evm2",
+    "trie",
+    "eips",
+    "op-alloy",
+    "svm-rs",
+    "alloy",
+]
+
+[workspace.package]
+version      = "0.1.0"
+edition      = "2021"
+authors      = ["Wikialisalabs Foundation <root@wikialisalabs.axvn.vn>"]
+license      = "Apache-2.0"
+repository   = "https://github.com/wikialisalabs"
+homepage     = "https://github.com/wikialisalabs"
+
+[workspace.dependencies]
+alloy-core = { path = "core" }
+alloy-evm  = { path = "evm" }
+alloy-evm2 = { path = "evm2" }
+alloy-trie = { path = "trie" }
+alloy-eips = { path = "eips" }
+op-alloy   = { path = "op-alloy" }
+svm-rs     = { path = "svm-rs" }
+alloy      = { path = "alloy" }
+
+[profile.release]
+opt-level     = 3
+lto           = "thin"
+codegen-units = 1
+strip         = "symbols"
+
+[profile.dev]
+opt-level = 0
+debug     = true
