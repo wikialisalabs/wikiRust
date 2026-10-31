@@ -1,52 +1,39 @@
-# =============================================================================
-# CODEOWNERS — Wikialisalabs / wikiRust
-# =============================================================================
-# Định nghĩa ai phải review khi một file thay đổi.
-# Vai trò:
-#   @wikialisalabs/dev     — Developer team (Tầng 2–3 dev)
-#   @wikialisalabs/master  — Senior Dev team (review + merge dev→master)
-#   @wikialisalabs/ledger  — Auditor/Release team (merge master→main, compliance)
-#   @wikialisalabs/main    — Admin team (full repo control)
+# ==============================================================================
+# CODEOWNERS — Wikialisalabs Foundation
+# ==============================================================================
+# Định nghĩa người chịu trách nhiệm review (Code Owner) cho từng layer.
+#
+# Teams:
+#   @wikialisalabs/dev-leads       — Lead Developer, review mặc định toàn repo
+#   @wikialisalabs/core-devs       — Tầng 1: Core Primitives (alloy-core, RLP, Sol Types)
+#   @wikialisalabs/evm-team        — Tầng 2: EVM Runtime (evm, evm2)
+#   @wikialisalabs/zk-team         — Tầng 2: ZK/experimental (evm2 ZK-IR output)
+#   @wikialisalabs/ledger-team     — Tầng 2: Trie + audit trail, compliance
+#   @wikialisalabs/l2-team         — Tầng 3: OP Stack / L2 (op-alloy)
+#   @wikialisalabs/tooling-team    — Tầng 3: Developer tooling (svm-rs)
+#   @wikialisalabs/doc-reviewers   — Documentation
+#   @wikialisalabs/devops-team     — CI/CD, GitHub Actions, infra
 #
 # Tài liệu: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
-# =============================================================================
+# ==============================================================================
 
-# ── Mặc định: toàn bộ repo → master + ledger phải review ─────────────────────
-*                                   @wikialisalabs/master @wikialisalabs/ledger
+# Mặc định tất cả thay đổi cần ít nhất Lead Dev review
+*                       @wikialisalabs/dev-leads
 
-# ── Tầng 1 — Core Primitives: kiểm soát chặt nhất ────────────────────────────
-# Bất kỳ thay đổi nào trong core/ đều cần ledger review
-/core/                              @wikialisalabs/ledger @wikialisalabs/main
+# TẦNG 1: Core Primitives (zero-dependency primitives, RLP, Sol Types)
+/core/                  @wikialisalabs/core-devs @wikialisalabs/ledger-team
 
-# ── Tầng 2 — EVM Runtime & Data Structures ────────────────────────────────────
-/evm/                               @wikialisalabs/master @wikialisalabs/ledger
-/evm2/                              @wikialisalabs/master @wikialisalabs/ledger
-/trie/                              @wikialisalabs/master @wikialisalabs/ledger
+# TẦNG 2: EVM Runtime & Data Structures (EVM, EVM2, Trie)
+/evm/                   @wikialisalabs/evm-team
+/evm2/                  @wikialisalabs/evm-team @wikialisalabs/zk-team
+/trie/                  @wikialisalabs/ledger-team
 
-# ── Tầng 3 — Ecosystem Extensions ────────────────────────────────────────────
-/eips/                              @wikialisalabs/dev @wikialisalabs/master
-/op-alloy/                          @wikialisalabs/dev @wikialisalabs/master
-/svm-rs/                            @wikialisalabs/dev @wikialisalabs/master
+# TẦNG 3: Ecosystem Extensions (OP Stack, SVM-RS, EIPs & Hardforks)
+/op-alloy/              @wikialisalabs/l2-team
+/svm-rs/                @wikialisalabs/tooling-team
+/eips/                  @wikialisalabs/core-devs
 
-# ── Tầng 0 — Meta-crate ───────────────────────────────────────────────────────
-/alloy/                             @wikialisalabs/master @wikialisalabs/ledger
-
-# ── Cấu hình workspace ────────────────────────────────────────────────────────
-/Cargo.toml                         @wikialisalabs/ledger @wikialisalabs/main
-/Cargo.lock                         @wikialisalabs/master @wikialisalabs/ledger
-/.cargo/                            @wikialisalabs/ledger @wikialisalabs/main
-
-# ── CI/CD và GitHub config ────────────────────────────────────────────────────
-/.github/                           @wikialisalabs/ledger @wikialisalabs/main
-/.github/workflows/                 @wikialisalabs/ledger @wikialisalabs/main
-
-# ── Scripts hạ tầng ───────────────────────────────────────────────────────────
-/.github/setup-branch-rules.sh      @wikialisalabs/main
-
-# ── Tài liệu ─────────────────────────────────────────────────────────────────
-/README.md                          @wikialisalabs/master
-*.md                                @wikialisalabs/dev @wikialisalabs/master
-
-# ── Security-sensitive files ──────────────────────────────────────────────────
-/SECURITY.md                        @wikialisalabs/ledger @wikialisalabs/main
-**/unsafe*.rs                       @wikialisalabs/ledger @wikialisalabs/main
+# TẦNG 0 & 4: Meta-crate, Docs & CI/CD Infrastructure
+/alloy/                 @wikialisalabs/dev-leads
+/docs/                  @wikialisalabs/doc-reviewers
+/.github/workflows/     @wikialisalabs/devops-team @wikialisalabs/dev-leads

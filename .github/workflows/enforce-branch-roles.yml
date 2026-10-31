@@ -1,0 +1,54 @@
+name: Enforce Branch & Role Rules
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+      - dev
+      - ledger
+    types: [opened, synchronize, reopened, labeled]
+
+jobs:
+  validate-branch-governance:
+    name: Validate Branch & Role Governance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Validate Target Branch Rules
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const targetBranch = context.payload.pull_request.base.ref;
+            const headBranch = context.payload.pull_request.head.ref;
+            const author = context.payload.pull_request.user.login;
+
+            console.log(`Pull Request từ '${headBranch}' vào '${targetBranch}' bởi user '${author}'`);
+
+            // Quy tắc 1: Nhánh main / master chỉ nhận PR từ ledger hoặc release/hotfix
+            if (['main', 'master'].includes(targetBranch)) {
+              const allowedPrefixes = ['ledger', 'release/', 'hotfix/'];
+              const isAllowed = allowedPrefixes.some(p => headBranch.startsWith(p));
+              if (!isAllowed) {
+                core.setFailed(`❌ Nhánh '${targetBranch}' chỉ chấp nhận Merge từ 'ledger' hoặc 'release/*', 'hotfix/*'. Nhánh hiện tại: '${headBranch}'`);
+              }
+            }
+
+            // Quy tắc 2: Nhánh ledger chỉ nhận PR từ dev hoặc feature/bugfix
+            if (targetBranch === 'ledger') {
+              const allowedPrefixes = ['dev', 'feature/', 'fix/'];
+              const isAllowed = allowedPrefixes.some(p => headBranch.startsWith(p));
+              if (!isAllowed) {
+                core.setFailed(`❌ Nhánh 'ledger' chỉ chấp nhận Merge từ 'dev' hoặc 'feature/*', 'fix/*'. Nhánh hiện tại: '${headBranch}'`);
+              }
+            }
+
+      - name: Verify Token Permissions Context
+        run: |
+          echo "✅ Kiểm tra quy trình hoàn tất. Đảm bảo GitHub Personal Access Token có các quyền sau để vận hành tự động:"
+          echo "   - repo (Full control)"
+          echo "   - workflow (Update GitHub Action workflows)"
+          echo "   - admin:org (Read/Write org projects & team membership)"
